@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "psnape.lanesnap",
+  "name": "lanesnap",
+  "version": "0.1.0",
+  "author": "psnape",
+  "description": "Zone overlay and layout editor for snapping windows into columns, tiled",
+  "kinds": [
+    "panel"
+  ],
+  "entryPoints": {
+    "panel": "Panel.qml"
+  }
+}

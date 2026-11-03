@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# lanesnap-zone <n>: snap the focused window into zone n of the preset currently selected in the
+# overlay. Does nothing if the preset has no zone n.
+here=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+# shellcheck source=../lib/hypr.sh
+source "$here/../lib/hypr.sh"
+cfg=$(lanesnap_config)
+n=${1:?zone}
+layout=$(jq -r '.default // .order[0]' "$cfg")
+jq -e --arg l "$layout" --argjson n "$n" '.layouts[$l].zones | length >= $n' "$cfg" >/dev/null || exit 0
+exec "$here/lanesnap" "$layout" "$n"

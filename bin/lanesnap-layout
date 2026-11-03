@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Flip the current workspace between the scrolling layout (used by lanesnap) and dwindle.
+here=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+# shellcheck source=../lib/hypr.sh
+source "$here/../lib/hypr.sh"
+read -r ws layout < <(hyprctl activeworkspace -j | jq -r '"\(.id) \(.tiledLayout)"')
+[[ $layout == scrolling ]] && next=dwindle || next=scrolling
+hl_workspace_layout "$ws" "$next"
+hyprctl notify 1 2000 0 "Workspace $ws: $next" >/dev/null 2>&1 || true

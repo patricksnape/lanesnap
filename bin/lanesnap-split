@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# "Toggle split" for whichever layout the workspace is using.
+# dwindle: flip the split direction. scrolling: stack the window under its neighbour in one
+# column, or pull it back out into its own column.
+here=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+# shellcheck source=../lib/hypr.sh
+source "$here/../lib/hypr.sh"
+case $(hyprctl activeworkspace -j | jq -r .tiledLayout) in
+  dwindle)   hl_layoutmsg togglesplit ;;
+  scrolling) hl_layoutmsg "consume_or_expel next" ;;
+esac

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# lanesnap-drag start|drop|cancel: drag-to-zone driven by a press/release mouse binding.
+#   start  pick the window under the cursor and show the zones (click-through overlay)
+#   drop   snap that window into the zone under the cursor, or cancel if there is none
+case ${1:-} in
+  start)
+    addr=$(hyprctl activewindow -j | jq -r '.address // empty')
+    [[ -n $addr ]] || exit 0
+    exec omarchy-shell shell summon psnape.lanesnap "$(jq -nc --arg w "$addr" '{drag: "start", window: $w}')" ;;
+  drop)   exec omarchy-shell shell summon psnape.lanesnap '{"drag":"drop"}' ;;
+  cancel) exec omarchy-shell shell summon psnape.lanesnap '{"drag":"cancel"}' ;;
+  *) echo "usage: lanesnap-drag start|drop|cancel" >&2; exit 2 ;;
+esac

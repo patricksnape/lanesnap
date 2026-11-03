@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# lanesnap-doctor: check that everything lanesnap needs is in place. Read-only; touches no windows.
+here=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+# shellcheck source=../lib/hypr.sh
+source "$here/../lib/hypr.sh"
+fail=0
+ok()   { printf '  ok    %s\n' "$1"; }
+bad()  { printf '  FAIL  %s\n' "$1"; fail=1; }
+warn() { printf '  warn  %s\n' "$1"; }
+
+echo "lanesnap doctor"
+for c in hyprctl jq omarchy-shell lanesnap lanesnap-zone lanesnap-overlay lanesnap-drag; do
+  command -v "$c" >/dev/null && ok "command $c" || bad "command $c not on PATH (run make install)"
+done
+
+ver=$(hyprctl version -j 2>/dev/null | jq -r '.tag // empty')
+if [[ -z $ver ]]; then bad "hyprctl version unavailable (not running under Hyprland?)"
+else
+  v=${ver#v}; major=${v%%.*}; rest=${v#*.}; minor=${rest%%.*}
+  if (( major > 0 || minor >= 56 )); then ok "Hyprland $ver (needs >= 0.56)"; else bad "Hyprland $ver is older than 0.56"; fi
+fi
+
+cfg=$(lanesnap_config)
+if [[ -f $cfg ]] && jq -e '.layouts and .order' "$cfg" >/dev/null 2>&1; then
+  ok "layouts: $cfg ($(jq -r '.order | length' "$cfg") presets, default $(jq -r .default "$cfg"))"
+else bad "layouts file missing or invalid: $cfg"; fi
+
+plugin=$(omarchy-shell shell listPlugins 2>/dev/null | jq -r '.[] | select(.id == "psnape.lanesnap") | .enabled' 2>/dev/null)
+[[ $plugin == true ]] && ok "shell plugin psnape.lanesnap enabled" || bad "shell plugin psnape.lanesnap not enabled (omarchy plugin enable psnape.lanesnap)"
+
+for k in 'Snap zones overlay' 'Snap window to zone 1' 'Drag window to a snap zone'; do
+  hyprctl binds -j | jq -e --arg d "$k" 'any(.[]; .description == $d)' >/dev/null && ok "binding: $k" || bad "binding missing: $k"
+done
+hyprctl configerrors 2>/dev/null | grep -q . && warn "hyprctl configerrors is not empty" || ok "no Hyprland config errors"
+exit "$fail"

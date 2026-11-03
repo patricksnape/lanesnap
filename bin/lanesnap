@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# lanesnap <layout> <zone>: move a window into a zone (column) of a layout in layouts.json,
+# keeping everything tiled.
+#
+# The workspace switches to Hyprland's scrolling layout and a layout of N zones becomes N columns
+# sized to the zone widths. The window swaps columns until it is in the requested zone. Windows
+# beyond N columns are folded into the last zone's column as tabs (a window group). With fewer
+# windows than zones, the columns that exist take the widest zones, and a lone column is centred.
+# Zones are [col, row, colspan, cols]; width = colspan / cols.
+# LANESNAP_WINDOW pins the target window (the overlay sets it); default is the focused window.
+set -euo pipefail
+here=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+# shellcheck source=../lib/hypr.sh
+source "$here/../lib/hypr.sh"
+
+cfg=$(lanesnap_config)
+layout=${1:?layout} zone=${2:?zone (1-based)}
+
+[[ -z ${LANESNAP_WINDOW:-} ]] || hl_focus_window "$LANESNAP_WINDOW"
+win=$(hyprctl activewindow -j)
+addr=$(jq -r '.address // empty' <<<"$win")
+[[ -n $addr ]] || exit 0
+ws=$(jq -r .workspace.id <<<"$win")
+
+mapfile -t widths < <(jq -r --arg l "$layout" '.layouts[$l].zones // [] | sort_by(.[0])[] | .[2] / .[3]' "$cfg")
+n=${#widths[@]}
+(( n > 0 )) || { echo "lanesnap: unknown layout $layout in $cfg" >&2; exit 1; }
+
+# Columns left to right as arrays of addresses; windows sharing an x are one column.
+cols() {
+  hyprctl clients -j | jq -c --argjson ws "$ws" '
+    [.[] | select(.workspace.id == $ws and (.floating | not) and .mapped and (.hidden | not))]
+    | group_by(.at[0]) | map(map(.address))'
+}
+col_of() { jq -r --arg a "$1" 'map(any(.[]; . == $a)) | index(true) // empty' <<<"$2"; }
+grouped_count() { hyprctl clients -j | jq -r --arg a "$1" '.[] | select(.address == $a) | .grouped | length'; }
+
+[[ $(jq .floating <<<"$win") == false ]] || hl_float_off "$addr"
+hl_workspace_layout "$ws" scrolling
+
+# Pull the window out of any tab group so it has a column of its own.
+if (( $(grouped_count "$addr") > 1 )); then hl_out_of_group; fi
+
+# Swap columns until the window is in the target column.
+c=$(cols); m=$(jq length <<<"$c")
+target=$(( zone - 1 < m - 1 ? zone - 1 : m - 1 ))
+for _ in $(seq 1 "$m"); do
+  c=$(cols); i=$(col_of "$addr" "$c")
+  [[ -n $i ]] && (( i != target )) || break
+  hl_focus_window "$addr"
+  hl_layoutmsg "swapcol $( (( i > target )) && echo l || echo r )"
+done
+
+# Fold windows beyond the Nth column into the last zone's column as tabs.
+for _ in $(seq 1 20); do
+  c=$(cols); m=$(jq length <<<"$c")
+  (( m > n )) || break
+  anchor=$(jq -r --argjson k "$((n - 1))" '.[$k][0]' <<<"$c")
+  if (( $(grouped_count "$anchor") == 0 )); then hl_focus_window "$anchor"; hl_group_toggle; fi
+  for extra in $(jq -r --argjson k "$n" '.[$k][]' <<<"$c"); do
+    hl_focus_window "$extra"; hl_move_into_group l
+  done
+done
+
+# Size the columns: all N zones when they exist, otherwise the widest ones in order.
+c=$(cols); m=$(jq length <<<"$c")
+mapfile -t use < <(printf '%s\n' "${widths[@]}" | jq -Rs --argjson m "$m" '
+  split("\n") | map(select(. != "") | tonumber) | to_entries
+  | sort_by(-.value) | .[:$m] | sort_by(.key) | .[].value')
+for k in $(seq 0 $(( m - 1 ))); do
+  hl_focus_window "$(jq -r --argjson k "$k" '.[$k][0]' <<<"$c")"
+  hl_layoutmsg "colresize ${use[$k]}"
+done
+(( m > 1 )) || hl_layoutmsg center
+# Scroll the strip back to its start, then return to the target (already in view, so no scroll).
+hl_focus_window "$(jq -r '.[0][0]' <<<"$c")"
+hl_focus_window "$addr"

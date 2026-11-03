@@ -1,0 +1,10 @@
+{
+  "layouts": {
+    "thirds": { "label": "Thirds",       "zones": [[0, 0, 1, 3], [1, 0, 1, 3], [2, 0, 1, 3]] },
+    "focus":  { "label": "Centre focus", "zones": [[0, 0, 1, 4], [1, 0, 2, 4], [3, 0, 1, 4]] },
+    "halves": { "label": "Halves",       "zones": [[0, 0, 1, 2], [1, 0, 1, 2]] },
+    "wide":   { "label": "Wide centre",  "zones": [[0, 0, 1, 5], [1, 0, 3, 5], [4, 0, 1, 5]] }
+  },
+  "order": ["thirds", "focus", "halves", "wide"],
+  "default": "thirds"
+}

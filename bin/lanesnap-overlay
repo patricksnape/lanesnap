@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Open the zone overlay, remembering the focused window so the snap still targets it after a
+# click moves focus.
+addr=$(hyprctl activewindow -j | jq -r '.address // empty')
+exec omarchy-shell shell summon psnape.lanesnap "$(jq -nc --arg w "$addr" '{window: $w}')"
