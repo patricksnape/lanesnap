@@ -39,4 +39,5 @@ test:
 lint:
 	for f in bin/* lib/hypr.sh tests/smoke.sh; do bash -n $$f || exit 1; done
 	jq empty config/layouts.json manifest.json
+	@for n in $$(grep -oE 'hl\.(dsp\.[a-z_.]+|workspace_rule)' lib/hypr.sh | sort -u); do grep -qF "$$n" ci/api-check.lua || { echo "ci/api-check.lua is missing $$n (keep it in sync with lib/hypr.sh)"; exit 1; }; done
 	@if command -v shellcheck >/dev/null; then shellcheck -x -P SCRIPTDIR bin/* lib/hypr.sh tests/smoke.sh; fi

@@ -1,0 +1,50 @@
+name: hyprland-compat
+
+# Checks lanesnap's Hyprland Lua against the latest Hyprland package on Arch, daily and on changes.
+# It runs `Hyprland --verify-config`, so no compositor or GPU is needed. It catches removed or
+# renamed dispatchers and some argument changes. It does not run lanesnap: layout messages such as
+# swapcol/colresize and the actual behaviour are only exercised by `make test` on a live session.
+on:
+  schedule:
+    - cron: "23 5 * * *"
+  push:
+    branches: [master]
+    paths: ["hypr/**", "lib/**", "ci/**", ".github/workflows/hyprland-compat.yml"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  verify-config:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Install the current Hyprland package
+        run: pacman -Syu --noconfirm --needed hyprland jq git github-cli
+      - uses: actions/checkout@v4
+      - name: Verify the Lua config
+        run: |
+          echo "hyprland package: $(pacman -Q hyprland)"
+          useradd -m ci
+          cp -r "$GITHUB_WORKSPACE" /home/ci/lanesnap
+          chown -R ci:ci /home/ci/lanesnap
+          {
+            echo '```'
+            runuser -u ci -- /home/ci/lanesnap/ci/verify-config.sh
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Open an issue if the daily check fails
+        if: failure() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(pacman -Q hyprland)
+          title="Hyprland compatibility check failed ($version)"
+          open=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "Hyprland compatibility check failed in:title" --json number --jq length)
+          if [ "$open" = 0 ]; then
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" \
+              --body "The daily check of lanesnap's Hyprland Lua failed against \`$version\`. Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          fi

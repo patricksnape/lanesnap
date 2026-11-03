@@ -105,13 +105,17 @@ Hyprland's Lua API and Omarchy's shell-plugin format are young and still changin
 - Every Hyprland dispatcher string is in `lib/hypr.sh`, so an API change is a one-file fix.
 - `make doctor` checks versions, bindings and the plugin; `make test` runs the real thing on throwaway
   terminals on a scratch workspace (set `LANESNAP_TEST_WS` to an empty workspace; foot is the default terminal).
+- A daily GitHub Actions job (`hyprland-compat`) loads `hypr/lanesnap.lua` and builds every dispatcher
+  `lib/hypr.sh` uses against the **latest Hyprland on Arch**, using `Hyprland --verify-config` (no compositor
+  or GPU needed), and opens an issue if it fails. It catches removed or renamed dispatchers and some argument
+  changes. It does **not** catch layout-message changes (`swapcol`, `colresize`, ...) or behaviour changes;
+  only `make test` on a live session does.
 - Layouts and your own bindings live outside the repo and are never overwritten.
 
-| lanesnap | Hyprland | Omarchy |
-| --- | --- | --- |
-| 0.1.x | 0.56.2 | 4 |
-
-Only the versions in the table have been tested.
+| lanesnap | Hyprland | Omarchy | Status |
+| --- | --- | --- | --- |
+| 0.1.x | 0.56.2 | 4 | tested end to end (`make test`, daily use) |
+| 0.1.x | 0.57.0 | not tested | Lua config check passes; behaviour untested |
 
 ## Limitations
 
