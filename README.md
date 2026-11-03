@@ -105,17 +105,21 @@ Hyprland's Lua API and Omarchy's shell-plugin format are young and still changin
 - Every Hyprland dispatcher string is in `lib/hypr.sh`, so an API change is a one-file fix.
 - `make doctor` checks versions, bindings and the plugin; `make test` runs the real thing on throwaway
   terminals on a scratch workspace (set `LANESNAP_TEST_WS` to an empty workspace; foot is the default terminal).
-- A daily GitHub Actions job (`hyprland-compat`) loads `hypr/lanesnap.lua` and builds every dispatcher
-  `lib/hypr.sh` uses against the **latest Hyprland on Arch**, using `Hyprland --verify-config` (no compositor
-  or GPU needed), and opens an issue if it fails. It catches removed or renamed dispatchers and some argument
-  changes. It does **not** catch layout-message changes (`swapcol`, `colresize`, ...) or behaviour changes;
-  only `make test` on a live session does.
+- Two GitHub Actions jobs run daily:
+  - `hyprland-compat` loads `hypr/lanesnap.lua` and builds every dispatcher `lib/hypr.sh` uses against the
+    **latest Hyprland on Arch**, using `Hyprland --verify-config` (no compositor needed). It is quick and catches
+    removed or renamed dispatchers and some argument changes, but not layout-message or behaviour changes.
+  - `vm-test` boots a NixOS VM with a virtual GPU, starts a real Hyprland and runs `tests/smoke.sh` against it
+    (the same approach Hyprland's own CI uses, since Hyprland cannot run without a DRM device). It tests the
+    Hyprland in **nixpkgs**, which tracks upstream releases. Run it yourself with
+    `nix build .#checks.x86_64-linux.vm -L` (needs KVM).
+  - Either job opens an issue when the daily run fails.
 - Layouts and your own bindings live outside the repo and are never overwritten.
 
 | lanesnap | Hyprland | Omarchy | Status |
 | --- | --- | --- | --- |
 | 0.1.x | 0.56.2 | 4 | tested end to end (`make test`, daily use) |
-| 0.1.x | 0.57.0 | not tested | Lua config check passes; behaviour untested |
+| 0.1.x | 0.57.0 | not tested | `make test`-equivalent passes in the NixOS VM (`vm-test`); not run on a live Omarchy system |
 
 ## Limitations
 
@@ -130,7 +134,7 @@ Hyprland's Lua API and Omarchy's shell-plugin format are young and still changin
 
 ## Development
 
-`make lint` (bash syntax, JSON, shellcheck if installed), `make doctor`, `make test`.
+`make lint` (bash syntax, JSON, shellcheck if installed), `make doctor`, `make test` (live session), `nix build .#checks.x86_64-linux.vm -L` (NixOS VM, needs KVM).
 
 ## Licence
 

@@ -1,0 +1,48 @@
+name: vm-test
+
+# End-to-end test: boots a NixOS VM with a virtual GPU, starts a real Hyprland and runs tests/smoke.sh
+# against it. This is how Hyprland's own CI runs the compositor; it cannot run without a DRM device.
+# It tests the Hyprland in nixpkgs, which tracks upstream releases (Arch's package may lag or lead).
+# Daily runs use the newest nixpkgs; pushes and PRs use the revision pinned in flake.lock.
+on:
+  schedule:
+    - cron: "47 5 * * *"
+  push:
+    branches: [master]
+    paths: ["flake.*", "nix/**", "hypr/**", "lib/**", "bin/**", "tests/**", ".github/workflows/vm-test.yml"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  vm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: cachix/install-nix-action@v31
+      - name: Use the newest nixpkgs (scheduled runs only)
+        if: github.event_name == 'schedule'
+        run: nix flake update nixpkgs
+      - name: Run the VM test
+        run: nix build .#checks.x86_64-linux.vm -L --no-link
+      - name: Open an issue if the daily run fails
+        if: failure() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rev=$(jq -r '.nodes.nixpkgs.locked.rev' flake.lock)
+          title="End-to-end VM test failed on the newest nixpkgs"
+          open=$(gh issue list --state open --search "$title in:title" --json number --jq length)
+          if [ "$open" = 0 ]; then
+            gh issue create --title "$title" \
+              --body "The daily VM test failed with nixpkgs \`$rev\`. Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          fi
