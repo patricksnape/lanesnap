@@ -39,4 +39,4 @@ test:
 lint:
 	for f in bin/* lib/hypr.sh tests/smoke.sh; do bash -n $$f || exit 1; done
 	jq empty config/layouts.json manifest.json
-	@if command -v shellcheck >/dev/null; then shellcheck -x bin/* lib/hypr.sh tests/smoke.sh; fi
+	@if command -v shellcheck >/dev/null; then shellcheck -x -P SCRIPTDIR bin/* lib/hypr.sh tests/smoke.sh; fi

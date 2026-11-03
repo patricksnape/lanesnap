@@ -10,7 +10,7 @@ warn() { printf '  warn  %s\n' "$1"; }
 
 echo "lanesnap doctor"
 for c in hyprctl jq omarchy-shell lanesnap lanesnap-zone lanesnap-overlay lanesnap-drag; do
-  command -v "$c" >/dev/null && ok "command $c" || bad "command $c not on PATH (run make install)"
+  if command -v "$c" >/dev/null; then ok "command $c"; else bad "command $c not on PATH (run make install)"; fi
 done
 
 ver=$(hyprctl version -j 2>/dev/null | jq -r '.tag // empty')
@@ -26,10 +26,10 @@ if [[ -f $cfg ]] && jq -e '.layouts and .order' "$cfg" >/dev/null 2>&1; then
 else bad "layouts file missing or invalid: $cfg"; fi
 
 plugin=$(omarchy-shell shell listPlugins 2>/dev/null | jq -r '.[] | select(.id == "psnape.lanesnap") | .enabled' 2>/dev/null)
-[[ $plugin == true ]] && ok "shell plugin psnape.lanesnap enabled" || bad "shell plugin psnape.lanesnap not enabled (omarchy plugin enable psnape.lanesnap)"
+if [[ $plugin == true ]]; then ok "shell plugin psnape.lanesnap enabled"; else bad "shell plugin psnape.lanesnap not enabled (omarchy plugin enable psnape.lanesnap)"; fi
 
 for k in 'Snap zones overlay' 'Snap window to zone 1' 'Drag window to a snap zone'; do
-  hyprctl binds -j | jq -e --arg d "$k" 'any(.[]; .description == $d)' >/dev/null && ok "binding: $k" || bad "binding missing: $k"
+  if hyprctl binds -j | jq -e --arg d "$k" 'any(.[]; .description == $d)' >/dev/null; then ok "binding: $k"; else bad "binding missing: $k"; fi
 done
-hyprctl configerrors 2>/dev/null | grep -q . && warn "hyprctl configerrors is not empty" || ok "no Hyprland config errors"
+if hyprctl configerrors 2>/dev/null | grep -q .; then warn "hyprctl configerrors is not empty"; else ok "no Hyprland config errors"; fi
 exit "$fail"

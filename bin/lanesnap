@@ -46,7 +46,7 @@ c=$(cols); m=$(jq length <<<"$c")
 target=$(( zone - 1 < m - 1 ? zone - 1 : m - 1 ))
 for _ in $(seq 1 "$m"); do
   c=$(cols); i=$(col_of "$addr" "$c")
-  [[ -n $i ]] && (( i != target )) || break
+  if [[ -z $i ]] || (( i == target )); then break; fi
   hl_focus_window "$addr"
   hl_layoutmsg "swapcol $( (( i > target )) && echo l || echo r )"
 done

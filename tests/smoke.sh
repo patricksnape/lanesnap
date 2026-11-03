@@ -19,6 +19,7 @@ fi
 prev=$(hyprctl activeworkspace -j | jq .id)
 pass=0 failed=0
 
+# shellcheck disable=SC2329  # runs from the EXIT trap
 cleanup() {
   for a in $(hyprctl clients -j | jq -r --argjson ws "$ws" '.[] | select(.workspace.id == $ws) | .address'); do hl_close_window "$a"; done
   hl_workspace_layout "$ws" dwindle
