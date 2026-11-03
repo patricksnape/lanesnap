@@ -20,6 +20,26 @@ layout, so windows stay tiled and swap places instead of overlapping.
 
 Default presets: Thirds, Centre focus (25/50/25), Halves, Wide centre (20/60/20).
 
+## Screenshots
+
+On a 3840×1080 ultrawide, with the Centre focus preset.
+
+**Overlay (`SUPER+Z`)** shows the zones where windows will land. Click a zone or press its number; `Tab` switches presets.
+
+![The zone overlay over three tiled terminals, with the middle zone highlighted](docs/images/overlay.png)
+
+**Editor (`E` or `+ New`)**: name the preset, add or remove columns, drag the dividers.
+
+![The layout editor with dividers and a percentage on each column](docs/images/editor.png)
+
+**Drag to a zone (`SUPER+SHIFT` + drag)**: the zone under the cursor lights up; release to snap.
+
+![Drag mode with zone 3 highlighted and a release hint at the bottom](docs/images/drag.png)
+
+**Overflow becomes tabs**: five windows in three zones, so the last zone holds three as a tab group.
+
+![Five windows in a three-zone layout, with the right column showing a tab bar](docs/images/tabs.png)
+
 ## Requirements
 
 - Omarchy 4 (the zone overlay is an Omarchy shell / Quickshell plugin, and the bindings use Omarchy's `o.bind`)
