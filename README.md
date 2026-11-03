@@ -119,7 +119,7 @@ Hyprland's Lua API and Omarchy's shell-plugin format are young and still changin
 | lanesnap | Hyprland | Omarchy | Status |
 | --- | --- | --- | --- |
 | 0.1.x | 0.56.2 | 4 | tested end to end (`make test`, daily use) |
-| 0.1.x | 0.57.0 | not tested | `make test`-equivalent passes in the NixOS VM (`vm-test`); not run on a live Omarchy system |
+| 0.1.x | 0.57.0 | not tested | smoke test passes on a real Hyprland in the NixOS VM (`vm-test`); not tried on a live Omarchy system |
 
 ## Limitations
 
